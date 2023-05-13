@@ -10,7 +10,7 @@
 	<link rel="stylesheet" href="dist/reset.css">
 	<link rel="stylesheet" href="dist/reveal.css">
 	<link rel="stylesheet" href="dist/theme/black.css">
-
+	<link rel="stylesheet" type="text/css" href="css/asciinema-player.css" />
 	<!-- Theme used for syntax highlighted code -->
 	<link rel="stylesheet" href="plugin/highlight/monokai.css">
 </head>
@@ -42,11 +42,16 @@
 					<h2 class="r-fit-text">Feature Requirements</h2>
 				</section>
 				<section>
-					<pre><code  data-trim data-line-numbers="1|2|3|4"><script type="text/template">
-						initialise_system()
-						data <- ingest_data()
-						processed_data <- manipulate(data)
-						my_model(processed_data)
+					<pre><code  data-trim data-line-numbers="1|2"><script type="text/template">
+						data <- read.distributed.data("airlines")
+						dglm(data)
+					</script></code></pre>
+				</section>
+				<section>
+					<pre><code><script type="text/template">
+						dglm <- d(function(...) {
+							...
+						})
 					</script></code></pre>
 					<p>Bonus: Fast, Interactive, Familiar</p>
 				</section>
@@ -86,17 +91,16 @@
 				</section>
 				<section>
 					<h3>Supporting Concepts</h3>
+					<img src="distobjref.svg" alt="xx"> </img>
 					<ul>
-						<li>Distributed chunks</li>
-						<li>Distributed chunk array reference</li>
-						<li>Distributed object</li>
+						<li>Distributed object references chunks</li>
 						<li>Computation sent to the data</li>
 					</ul>
 				</section>
 				<section>
 					<h3>Supporting Program Layers</h3>
 					<ul>
-						<li>Model definition</li>
+						<li>Model definition: <pre><code>d(f)</code></pre></li>
 						<li>Communication</li>
 					</ul>
 					<aside class="notes">Expand: meaning and examples</aside>
@@ -115,35 +119,80 @@
 					\end{aligned} \]
 				</section>
 				<section>
-					<h3>The Code</h3>
-					<pre><code  data-trim data-line-numbers="11|12|13-17,19-23,25-31|18|24|1-9"><script type="text/template">
-					d.x_update <- d(function(x_prev, A, b, u_prev, rho, z_prev) {
+					<h3>Sequential Code</h3>
+					<pre><code><script type="text/template">
+						S <- function(kappa) function(alpha) pmax(alpha-kappa, 0) - pmax(-alpha-kappa, 0)
 						p_norm <- function(p) function(x) sum(abs(x)^p)^(1/p)
+						l1_norm <- p_norm(1)
 						l2_norm <- p_norm(2)
-						argmin <- function(init, f) optim(init, f)$par
-	
-						argmin(x_prev,
-							function(x_prev) (1/2)*l2_norm(A %*% x_prev - b)^2 +
-											(rho/2)*l2_norm(x_prev - z_prev + u_prev)^2)
-					})
-	
-					dlasso <- function(A, b, tolerance=1, rho=3, lambda=rho) {
-						M_N <- dim(chunkRef(A))
-						m <- ncol(A)
-						S_z <- S(lambda/(rho*M_N[2]))
-					
-						z_prev <- x_prev <- u_prev <- rep(Inf, m)
-						z_curr <- rep(1, m)
-						x_curr <- distribute(z_curr, where=A); u_curr <- distribute(z_curr, where=A)
-						i <- 0
+						
+						A <- matrix(runif(m*n), n, m)
+						chunks_i <- tapply(seq(n), cut(seq(n), N), identity, simplify=F)
+						A <- lapply(chunks_i, function(i, x) x[i,], A)
+						b <- lapply(chunks_i, function(i, x) x[i], b)
+					</script></code></pre>
+				</section>
+				<section>
+					<h3>Parallel Code</h3>
+					<pre><code><script type="text/template">
+						S <- function(kappa) function(alpha) pmax(alpha-kappa, 0) - pmax(-alpha-kappa, 0)
+						p_norm <- function(p) function(x) sum(abs(x)^p)^(1/p)
+						l1_norm <- p_norm(1)
+						l2_norm <- p_norm(2)
+						
+						dA <- read.dmatrix("filepath-A")
+						db <- read.dmatrix("filepath-b")
+					</script></code></pre>
+				</section>
+				<section>
+					<h3>Sequential Code</h3>
+					<pre><code><script type="text/template">
+						lasso <- function(A, b, tolerance=1, rho=3, lambda=rho) {
+							M_N <- dim(A)
+							m <- ncol(A)
+							S_z <- S(lambda/(rho*M_N[2]))
+						
+							z_prev <- rep(Inf, m)
+							x_prev <- u_prev <- rep(list(z_prev), N)
+							z_curr <- rep(1, m)
+							x_curr <- u_curr <- rep(list(z_curr), N)
+					</script></code></pre>
+				</section>
+				<section>
+					<h3>Parallel Code</h3>
+					<pre><code><script type="text/template">
+						dlasso <- function(A, b, tolerance=1, rho=3, lambda=rho) {
+							M_N <- dim(Ref(A))
+							m <- ncol(A)
+							S_z <- S(lambda/(rho*M_N[2]))
+						
+							z_prev <- x_prev <- u_prev <- rep(Inf, m)
+						
+							z_curr <- rep(1, m)
+							x_curr <- distribute(z_curr, where=A); u_curr <- distribute(z_curr, where=A)
+					</script></code></pre>
+				</section>
+				<section>
+					<h3>Sequential Code</h3>
+					<pre><code><script type="text/template">
 						while (l1_norm(z_curr - z_prev) > tolerance) {
-							cat("Iteration: ", i <- i+1, '\n')
 							x_prev <- x_curr; z_prev <- z_curr; u_prev <- u_curr
-					
+							x_curr <- mapply(x.update, x_prev, A, b, u_prev, MoreArgs = list(rho, z_prev), SIMPLIFY = FALSE)
+							x_local <- unlist(x_curr); u_local <- unlist(u_curr); dim(x_local) <- dim(u_local) <- c(m, N)
+							z_curr <- S_z(rowMeans(x_local) + rowMeans(u_local))
+							u_curr <- mapply(function(u_prev, x_curr, z_curr) u_prev + x_curr - z_curr, u_prev, x_curr, MoreArgs = list(z_curr), SIMPLIFY = FALSE)
+						}
+						z_curr
+					}
+					</script></code></pre>
+				</section>
+				<section>
+					<h3>Parallel Code</h3>
+					<pre><code><script type="text/template">
+						while (l1_norm(z_curr - z_prev) > tolerance) {
+							x_prev <- x_curr; z_prev <- z_curr; u_prev <- u_curr
 							x_curr <- d.x_update(x_prev, A, b, u_prev, rho, z_prev)
-					
-							dim(chunkRef(x_curr)) <- dim(chunkRef(u_curr)) <- M_N
-					
+							dim(Ref(x_curr)) <- dim(Ref(u_curr)) <- M_N
 							z_curr <- S_z(rowMeans(emerge(x_curr)) + rowMeans(emerge(u_curr)))
 							u_curr <- u_prev + x_curr - z_curr
 						}
@@ -152,9 +201,39 @@
 					</script></code></pre>
 				</section>
 				<section>
+					<h3>Sequential Code</h3>
+					<pre><code><script type="text/template">
+						x_update <- function(x_prev, A, b, u_prev, rho, z_prev) {
+							optim(x_prev,
+								function(x_prev) (1/2)*l2_norm(A %*% x_prev - b)^2 +
+												(rho/2)*l2_norm(x_prev - z_prev + u_prev)^2)$par
+						}
+					</script></code></pre>
+				</section>
+				<section>
+					<h3>Parallel Code</h3>
+					<pre><code><script type="text/template">
+						d.x_update <- d(function(x_prev, A, b, u_prev, rho, z_prev) {
+							optim(x_prev,
+								function(x_prev) (1/2)*l2_norm(A %*% x_prev - b)^2 +
+												(rho/2)*l2_norm(x_prev - z_prev + u_prev)^2)$par
+						})
+					</script></code></pre>
+				</section>
+				<section>
 					<h3>The Code in Action</h3>
-					<!-- Insert asciinema here -->
-					<aside class="notes">Note the existence of lower communication layer - comment on elasticity, p2p</aside>
+					<div id="asciicast" class="player"></div>
+					<aside class="notes">Note the existence of lower communication layer - comment on elasticity, p2p
+					</aside>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2>More on concepts, implementation etc. if there is time</h2>
+					<ul>
+						<li>master, slave etc.</li>
+					</ul>
+					<aside class="notes">Expand: meaning and examples</aside>
 				</section>
 			</section>
 			<section>
@@ -164,11 +243,13 @@
 				<section>
 					<h3>Conclusion</h3>
 					<ul>
-						<li>Key Takeaway: There's a new system in R that gets to the essence of distributed modelling, with interfaces at multiple layers</li>
+						<li>Key Takeaway: There's a new system in R that gets to the essence of distributed modelling,
+							with interfaces at multiple layers</li>
 						<li>Limitations:<ul>
-							<li>Still in development</li>
-							<li>No monitoring or resilience</li>
-						</ul></li>
+								<li>Still in development</li>
+								<li>No monitoring or resilience</li>
+							</ul>
+						</li>
 					</ul>
 				</section>
 				<section>
@@ -183,11 +264,14 @@
 	<script src="plugin/markdown/markdown.js"></script>
 	<script src="plugin/highlight/highlight.js"></script>
 	<script src="plugin/math/math.js"></script>
+	<script src="js/asciinema-player.min.js"></script>
+
 	<script>
 		Reveal.initialize({
 			hash: true,
-			plugins: [RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX]
+			plugins: [RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX ]
 		});
+		AsciinemaPlayer.create('lasso.cast', document.getElementById('asciicast'));
 	</script>
 </body>
 
