@@ -231,6 +231,9 @@
 			</section>
 			<section>
 				<section>
+					<h2 class="r-fit-text">More Details</h2>
+				</section>
+				<section>
 					<div id="graph2"></div>
 				</section>
 				<section>
@@ -276,12 +279,12 @@
 			static_graph_dot = await static_graph_response.text();
 			d3.select("#graph1").graphviz().renderDot(static_graph_dot);
 
-			const dynamic_graph_responses_ncm = [...Array(5).keys()].map(x=>"graphs/no-chunk-movement/distobjref"+x+".gv")
+			const dynamic_graph_responses_ncm = [...Array(5).keys()].map(x => "graphs/no-chunk-movement/distobjref" + x + ".gv")
 				.map(x => fetch(x).then((response) => response.text()));
 			dynamic_graph_dot_ncm = await Promise.all(dynamic_graph_responses_ncm);
 			anim_graph('#graph2', dynamic_graph_dot_ncm)
 
-			const dynamic_graph_responses_cm = [...Array(9).keys()].map(x=>"graphs/chunk-movement/distobjref"+x+".gv")
+			const dynamic_graph_responses_cm = [...Array(9).keys()].map(x => "graphs/chunk-movement/distobjref" + x + ".gv")
 				.map(x => fetch(x).then((response) => response.text()));
 			dynamic_graph_dot_cm = await Promise.all(dynamic_graph_responses_cm);
 			anim_graph('#graph3', dynamic_graph_dot_cm)
