@@ -91,7 +91,7 @@
 				</section>
 				<section>
 					<h3>Supporting Concepts</h3>
-					<img src="distobjref.svg" alt="xx"> </img>
+					<div id="graph1" style="text-align: center;"></div>
 					<ul>
 						<li>Distributed object references chunks</li>
 						<li>Computation sent to the data</li>
@@ -100,7 +100,9 @@
 				<section>
 					<h3>Supporting Program Layers</h3>
 					<ul>
-						<li>Model definition: <pre><code>d(f)</code></pre></li>
+						<li>Model definition:
+							<pre><code>d(f)</code></pre>
+						</li>
 						<li>Communication</li>
 					</ul>
 					<aside class="notes">Expand: meaning and examples</aside>
@@ -229,11 +231,10 @@
 			</section>
 			<section>
 				<section>
-					<h2>More on concepts, implementation etc. if there is time</h2>
-					<ul>
-						<li>master, slave etc.</li>
-					</ul>
-					<aside class="notes">Expand: meaning and examples</aside>
+					<div id="graph2"></div>
+				</section>
+				<section>
+					<div id="graph3"></div>
 				</section>
 			</section>
 			<section>
@@ -265,13 +266,32 @@
 	<script src="plugin/highlight/highlight.js"></script>
 	<script src="plugin/math/math.js"></script>
 	<script src="js/asciinema-player.min.js"></script>
-
+	<script src="node_modules/d3/dist/d3.js"></script>
+	<script src="node_modules/@hpcc-js/wasm/dist/graphviz.umd.js"></script>
+	<script src="node_modules/d3-graphviz/build/d3-graphviz.js"></script>
+	<script src="graphs.js"></script>
 	<script>
-		Reveal.initialize({
-			hash: true,
-			plugins: [RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX ]
-		});
-		AsciinemaPlayer.create('lasso.cast', document.getElementById('asciicast'));
+		(async () => {
+			static_graph_response = await fetch("graphs/distobjref.gv");
+			static_graph_dot = await static_graph_response.text();
+			d3.select("#graph1").graphviz().renderDot(static_graph_dot);
+
+			const dynamic_graph_responses_ncm = [...Array(5).keys()].map(x=>"graphs/no-chunk-movement/distobjref"+x+".gv")
+				.map(x => fetch(x).then((response) => response.text()));
+			dynamic_graph_dot_ncm = await Promise.all(dynamic_graph_responses_ncm);
+			anim_graph('#graph2', dynamic_graph_dot_ncm)
+
+			const dynamic_graph_responses_cm = [...Array(9).keys()].map(x=>"graphs/chunk-movement/distobjref"+x+".gv")
+				.map(x => fetch(x).then((response) => response.text()));
+			dynamic_graph_dot_cm = await Promise.all(dynamic_graph_responses_cm);
+			anim_graph('#graph3', dynamic_graph_dot_cm)
+
+			AsciinemaPlayer.create('lasso.cast', document.getElementById('asciicast'));
+			Reveal.initialize({
+				hash: true,
+				plugins: [RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX]
+			});
+		})();
 	</script>
 </body>
 

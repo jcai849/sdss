@@ -1,0 +1,33 @@
+digraph distobjref {
+	colorscheme="Blues9"
+	rankdir="LR";
+	node [style="filled", fillcolor=white];
+	style="filled";
+
+	subgraph cluster_distobjref {
+		label="Master Process";
+		fillcolor=1;
+		cr1[label="Chunk Reference 1",color="red"];
+		cr2[label="Chunk Reference 2"];
+		cr3[label="Chunk Reference 3",color="red"];
+	}
+
+	subgraph cluster_process1 {
+		label="process 1";
+		fillcolor=2;
+		c1[label="chunk 1"];
+		c21[label="chunk 2"];
+
+	}
+	subgraph cluster_process2 {
+		label="process 2";
+		fillcolor=2;
+		c22[label="chunk 2"];
+		c3[label="chunk 3"]
+	}
+	
+	edge [style="dashed"]
+	cr1 -> c1;
+	cr2 -> {c21 c22};
+	cr3 -> c3;
+}
