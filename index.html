@@ -110,18 +110,47 @@
 			</section>
 			<section>
 				<section>
-					<h2 class="r-fit-text">The Solution</h2>
+					<h2 class="r-fit-text">Example "Distributed" Math</h2>
 				</section>
 				<section>
-					<h3>The Math</h3>
+					<h3>Data</h3>
 					\[\begin{aligned}
-					\dot{x} &amp; = \sigma(y-x) \\
-					\dot{y} &amp; = \rho x - y - xz \\
-					\dot{z} &amp; = -\beta z + xy
+					A = \begin{bmatrix}
+					A_1\\
+					\vdots \\
+					A_N
+					\end{bmatrix},&amp;
+					\quad b=\begin{bmatrix}
+					b_1\\
+					\vdots \\
+					b_N
+					\end{bmatrix}\\
+					A_i \in \mathbb{R}^{m_i\times n},&amp; \quad b_i \in \mathbb{R}^{m_i}
 					\end{aligned} \]
 				</section>
 				<section>
-					<h3>Sequential Code</h3>
+					<h3>Intention</h3>
+					\[\begin{aligned}
+					f(x) &amp;= \frac{1}{2} \left\| A_i x_i - b_i \right\|^2_2 \\
+					g(z) &amp;= \lambda \left| z \right|_1 \\
+					\text{minimise} \quad f(x) + g(z) &amp;\quad \text{subject to} \quad x = z
+					\end{aligned} \]
+				</section>
+				<section>
+					<h3>Iterative loop</h3>
+					\[\begin{aligned}
+					x_i^{k+1} &amp;:= (A_i^T A_i + \rho I)^{-1}(A^T b + \rho(z^k - u_i^k))\\
+					z^{k+1} &amp;:= S_\frac{\lambda}{\rho N} (\overline{x}^{k+1} + \overline{u}^k) \\
+					u_i^{k+1} &amp;:= u_i^k + x_i^{k+1} - z^{k+1}
+					\end{aligned} \]
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2 class="r-fit-text">Example Local "Distributed" Code</h2>
+				</section>
+				<section>
+					<h3>Data</h3>
 					<pre><code><script type="text/template">
 						S <- function(kappa) function(alpha) pmax(alpha-kappa, 0) - pmax(-alpha-kappa, 0)
 						p_norm <- function(p) function(x) sum(abs(x)^p)^(1/p)
@@ -135,19 +164,7 @@
 					</script></code></pre>
 				</section>
 				<section>
-					<h3>Parallel Code</h3>
-					<pre><code><script type="text/template">
-						S <- function(kappa) function(alpha) pmax(alpha-kappa, 0) - pmax(-alpha-kappa, 0)
-						p_norm <- function(p) function(x) sum(abs(x)^p)^(1/p)
-						l1_norm <- p_norm(1)
-						l2_norm <- p_norm(2)
-						
-						dA <- read.dmatrix("filepath-A")
-						db <- read.dmatrix("filepath-b")
-					</script></code></pre>
-				</section>
-				<section>
-					<h3>Sequential Code</h3>
+					<h3>Initialisation</h3>
 					<pre><code><script type="text/template">
 						lasso <- function(A, b, tolerance=1, rho=3, lambda=rho) {
 							M_N <- dim(A)
@@ -161,21 +178,7 @@
 					</script></code></pre>
 				</section>
 				<section>
-					<h3>Parallel Code</h3>
-					<pre><code><script type="text/template">
-						dlasso <- function(A, b, tolerance=1, rho=3, lambda=rho) {
-							M_N <- dim(Ref(A))
-							m <- ncol(A)
-							S_z <- S(lambda/(rho*M_N[2]))
-						
-							z_prev <- x_prev <- u_prev <- rep(Inf, m)
-						
-							z_curr <- rep(1, m)
-							x_curr <- distribute(z_curr, where=A); u_curr <- distribute(z_curr, where=A)
-					</script></code></pre>
-				</section>
-				<section>
-					<h3>Sequential Code</h3>
+					<h3>Iterative Loop</h3>
 					<pre><code><script type="text/template">
 						while (l1_norm(z_curr - z_prev) > tolerance) {
 							x_prev <- x_curr; z_prev <- z_curr; u_prev <- u_curr
@@ -189,21 +192,7 @@
 					</script></code></pre>
 				</section>
 				<section>
-					<h3>Parallel Code</h3>
-					<pre><code><script type="text/template">
-						while (l1_norm(z_curr - z_prev) > tolerance) {
-							x_prev <- x_curr; z_prev <- z_curr; u_prev <- u_curr
-							x_curr <- d.x_update(x_prev, A, b, u_prev, rho, z_prev)
-							dim(Ref(x_curr)) <- dim(Ref(u_curr)) <- M_N
-							z_curr <- S_z(rowMeans(emerge(x_curr)) + rowMeans(emerge(u_curr)))
-							u_curr <- u_prev + x_curr - z_curr
-						}
-						z_curr
-					}
-					</script></code></pre>
-				</section>
-				<section>
-					<h3>Sequential Code</h3>
+					<h3>Update Function</h3>
 					<pre><code><script type="text/template">
 						x_update <- function(x_prev, A, b, u_prev, rho, z_prev) {
 							optim(x_prev,
@@ -212,15 +201,12 @@
 						}
 					</script></code></pre>
 				</section>
+			</section>
+			<section>
 				<section>
-					<h3>Parallel Code</h3>
-					<pre><code><script type="text/template">
-						d.x_update <- d(function(x_prev, A, b, u_prev, rho, z_prev) {
-							optim(x_prev,
-								function(x_prev) (1/2)*l2_norm(A %*% x_prev - b)^2 +
-												(rho/2)*l2_norm(x_prev - z_prev + u_prev)^2)$par
-						})
-					</script></code></pre>
+					<h2 class="r-fit-text">Largescaler Solution</h2>
+				</section>
+				<section data-background-iframe="diff.html" data-background-interactive>
 				</section>
 				<section>
 					<h3>The Code in Action</h3>
@@ -257,7 +243,7 @@
 					</ul>
 				</section>
 				<section>
-					QR code to contact me
+					<img class="r-stretch" src="qr-code.svg">
 				</section>
 			</section>
 		</div>
@@ -273,20 +259,21 @@
 	<script src="node_modules/@hpcc-js/wasm/dist/graphviz.umd.js"></script>
 	<script src="node_modules/d3-graphviz/build/d3-graphviz.js"></script>
 	<script src="graphs.js"></script>
+
 	<script>
 		(async () => {
-			static_graph_response = await fetch("graphs/distobjref.gv");
-			static_graph_dot = await static_graph_response.text();
+			const static_graph_response = await fetch("graphs/distobjref.gv");
+			const static_graph_dot = await static_graph_response.text();
 			d3.select("#graph1").graphviz().renderDot(static_graph_dot);
 
 			const dynamic_graph_responses_ncm = [...Array(5).keys()].map(x => "graphs/no-chunk-movement/distobjref" + x + ".gv")
 				.map(x => fetch(x).then((response) => response.text()));
-			dynamic_graph_dot_ncm = await Promise.all(dynamic_graph_responses_ncm);
+			const dynamic_graph_dot_ncm = await Promise.all(dynamic_graph_responses_ncm);
 			anim_graph('#graph2', dynamic_graph_dot_ncm)
 
 			const dynamic_graph_responses_cm = [...Array(9).keys()].map(x => "graphs/chunk-movement/distobjref" + x + ".gv")
 				.map(x => fetch(x).then((response) => response.text()));
-			dynamic_graph_dot_cm = await Promise.all(dynamic_graph_responses_cm);
+			const dynamic_graph_dot_cm = await Promise.all(dynamic_graph_responses_cm);
 			anim_graph('#graph3', dynamic_graph_dot_cm)
 
 			AsciinemaPlayer.create('lasso.cast', document.getElementById('asciicast'));
