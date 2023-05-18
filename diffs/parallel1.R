@@ -1,0 +1,7 @@
+A <- read.dmatrix(c("host1:~/filepath/A1", "host2:~/filepath/A2"))
+b <- read.dmatrix(c("host1:~/filepath/b1", "host2:~/filepath/b2"))
+M_N <- dim(Ref(A))
+m <- ncol(A)
+S_z <- S(lambda/(rho*M_N[2]))
+z_curr <- rep(1, m)
+x_curr <- u_curr <- distribute(z_curr, where=A)

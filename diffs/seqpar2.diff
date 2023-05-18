@@ -1,0 +1,17 @@
+diff --git a/diffs/sequential2.R b/diffs/parallel2.R
+index 01a5086..79168ca 100644
+--- a/diffs/sequential2.R
++++ b/diffs/parallel2.R
+@@ -1,7 +1,7 @@
+ while (l1_norm(z_curr - z_prev) > tolerance) {
+     x_prev <- x_curr; z_prev <- z_curr; u_prev <- u_curr
+-    x_curr <- mapply(x.update, x_prev, A, b, u_prev, MoreArgs = list(rho, z_prev))
+-    z_curr <- S_z(rowMeans(x_curr) + rowMeans(u_curr))
+-    u_curr <- mapply(function(u_prev, x_curr, z_curr) u_prev + x_curr - z_curr, u_prev, x_curr, MoreArgs = list(z_curr))
++    x_curr <- d.x_update(x_prev, A, b, u_prev, rho, z_prev)
++    z_curr <- S_z(rowMeans(emerge(x_curr)) + rowMeans(emerge(u_curr)))
++    u_curr <- u_prev + x_curr - z_curr
+ }
+-z_curr
++z_curr
+\ No newline at end of file

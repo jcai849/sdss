@@ -5,7 +5,7 @@ digraph distobjref {
 	style="filled";
 
 	subgraph cluster_distobjref {
-		label="Master Process";
+		label="R Process";
 		fillcolor=1;
 		rank=same;
 		cr1[label="Chunk Reference 1"];

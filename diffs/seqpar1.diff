@@ -1,0 +1,18 @@
+diff --git a/diffs/sequential1.R b/diffs/parallel1.R
+index 2059320..5992f11 100644
+--- a/diffs/sequential1.R
++++ b/diffs/parallel1.R
+@@ -1,7 +1,7 @@
+-A <- read.csv("~/filepath/A")
+-b <- read.csv("~/filepath/b")
+-M_N <- dim(A)
++A <- read.dmatrix(c("host1:~/filepath/A1", "host2:~/filepath/A2"))
++b <- read.dmatrix(c("host1:~/filepath/b1", "host2:~/filepath/b2"))
++M_N <- dim(Ref(A))
+ m <- ncol(A)
+ S_z <- S(lambda/(rho*M_N[2]))
+ z_curr <- rep(1, m)
+-x_curr <- u_curr <- rep(list(z_curr), N)
+\ No newline at end of file
++x_curr <- u_curr <- distribute(z_curr, where=A)
+\ No newline at end of file

@@ -1,0 +1,7 @@
+A <- read.csv("~/filepath/A")
+b <- read.csv("~/filepath/b")
+M_N <- dim(A)
+m <- ncol(A)
+S_z <- S(lambda/(rho*M_N[2]))
+z_curr <- rep(1, m)
+x_curr <- u_curr <- rep(list(z_curr), N)
