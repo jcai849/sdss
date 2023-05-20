@@ -27,30 +27,56 @@
 				<section>
 					<h2 class="r-fit-text">Large Scale R</h2>
 					<p>Jason Cairns</p>
+					<aside class="notes">
+						Thank you all for coming here today. I want to describe to you an exciting new project under
+						development for R, providing native distributed statistical modelling, called large scale R.
+						I've been working on this at the University of Auckland, in New Zealand, with my fantastic
+						supervisors Simon Urbanek, who just presented, and Paul Murrell. Let's start with why such a
+						system is needed.
+					</aside>
 				</section>
 			</section>
 			<section>
 				<section>
 					<h2 class="r-fit-text">The Problem</h2>
+					<aside class="notes">I'll begin with my use-case.</aside>
 				</section>
 				<section>
 					<ul>
 						<li>Larger-than-memory dataset</li>
 						<li>Novel model</li>
 						<li>Complex algorithm</li>
-						<aside class="notes">Expand on each - meaning and examples</aside>
+						<aside class="notes">
+							In my day-to-day job, I work as a data scientist at Air New Zealand and we've been looking
+							at fitting some novel geographic models on huge data sets much larger than computer memory.
+							It seems that I've had the same 8 gigs of RAM for the past several years, and yet the
+							dataset has just kept growing far bigger than that. So I've got this huge dataset and I want
+							to fit a model that isn't pre-defined by any libraries out of the box. And it's quite a
+							complex algorithm - say, iterative, long- running, and I need to define it myself, to run in
+							a distributed manner. What do I do?
+						</aside>
 					</ul>
 				</section>
 			</section>
 			<section>
 				<section>
 					<h2 class="r-fit-text">Feature Requirements</h2>
+					<aside class="notes">
+						Well, what am I actually wanting out of a solution?
+					</aside>
 				</section>
 				<section>
 					<pre class="r"><code  data-trim data-line-numbers="1|2"><script type="text/template">
 						data <- read.distributed.data("airlines")
 						my_model_fit <- fit_distributed_model(my_model, data)
 					</script></code></pre>
+					<aside class="notes">
+						As a statistician, I want to focus solely on the statistics, so I need a
+						high-level interface. The data is too big to fit in memory all at once, so it needs to be broken
+						up into chunks in order for it to be operated on as distributed data. I want to be able to read
+						in the data and forget that it's distributed. I want to take my model and have some system that
+						just fits my model to the data.
+					</aside>
 				</section>
 				<section>
 					<pre class="r"><code  data-trim data-line-numbers="1-3|4"><script type="text/template">
@@ -60,11 +86,38 @@
 						my_model <- d(my_simple_model)
 					</script></code></pre>
 					<p>Bonus: Fast, Interactive, Familiar</p>
+					<aside class="notes">
+						I want to be able to define my model using a standard and straightforward API,
+						and I want the system to provide me a simple means of automatically allowing my model as defined
+						to work on distributed data, without having to think too much of it. As a bonus I'd love it to
+						be a fast. I want it to be interactive and I want it to be familiar to me.
+					</aside>
 				</section>
 			</section>
 			<section>
 				<section>
-					<h2 class="r-fit-text">The Landscape</h2>
+					<h2 class="r-fit-text">Some Potential Solutions</h2>
+					<aside class="notes">
+						So let's take a look at a sample of what my options are.
+					</aside>
+				</section>
+				<section>
+					<h3>Bigger Machine</h3>
+					<img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/AWS_Simple_Icons_Compute_Amazon_EC2_Instances.svg"
+						width="30%" height="30%" alt="AWS EC2">
+					<ul>
+						<li>For moderately big data</li>
+						<li>Expensive</li>
+						<li>Security concerns</li>
+						<li>Still need framework for parallelisation</li>
+					</ul>
+					<aside class="notes">
+						Firstly, You could get a bigger machine, such as one of the larger AWS EC2
+						instances, and this will work for moderately large data sets, but it's actually surprisingly
+						expensive, given how cheap compute has become in recent years. There are also security
+						concerns and when you've got a really big dataset, it's going to take a really long time and so
+						you will still need some kind of framework for parallelisation.
+					</aside>
 				</section>
 				<section>
 					<img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/Apache_Spark_logo.svg" width="30%"
@@ -75,6 +128,12 @@
 								href="https://spark.apache.org/docs/1.6.0/api/scala/index.html#org.apache.spark.mllib.regression.RidgeRegressionWithSGD">Model
 								definition</a> beyond the skills of most statisticians</li>
 					</ul>
+					<aside class="notes">
+						In terms of frameworks, Spark is a fairly well established system, but it's
+						really heavyweight. There are various language bindings such as sparklyr that simplify things
+						but if I really wanted to define a model myself I need to get down into the scala and this is
+						beyond the ken of mine and most statistician's capabilities.
+					</aside>
 				</section>
 				<section>
 					<img src="https://pbdr.org/ui/img/newpbdr.png" width="30%" height="30%" alt="PBDR">
@@ -83,6 +142,13 @@
 						<li>Built on MPI and ScaLAPACK for matrices</li>
 						<li>Limited scope and extensibility</li>
 					</ul>
+					<aside class="notes">
+						There's PBDR - programming with big data in R. This is a really nice project
+						and It's built on MPI and scalapack for distributed matrix programming, but I want something a
+						lot more flexible than what it offers. Distributed graphs, data frames perhaps. I want a bit
+						more out of the box. Unfortunately the project seems to have stalled which is a real pity,
+						because I think there's a lot of further potential in it.
+					</aside>
 				</section>
 				<section>
 					<h3>Dask</h3>
@@ -92,12 +158,24 @@
 						<li>Mature System in Python</li>
 						<li>Limited mathematical expressibility</li>
 					</ul>
-					<aside class="notes">Summarise the landscape here</aside>
+					<aside class="notes">
+						There's also Dask in the python world, which has a weirdly similar logo to EC2. It's a very
+						mature system, very well supported but it's very clearly
+						not made for statistical model fitting. There is an ML library for it but it's mostly got a few
+						predefined models and when you look into the source code for them, you can see that while python
+						is, as they say, executable pseudocode - it's very far from executable math, and I think this is
+						one of the big advantages that R still has over python for stats. I heard someone say the other
+						day that R is the COBOL of statistical programming. I thought that was quite funny.
+					</aside>
 				</section>
 			</section>
 			<section>
 				<section>
 					<h2 class="r-fit-text">New Solution</h2>
+					<aside class="notes">
+						Alright, so with nothing quite fitting the task at hand, maybe I can make my
+						own distributed system framework. How hard can it be?
+					</aside>
 				</section>
 				<section>
 					<h3>Supporting Concepts</h3>
@@ -107,6 +185,27 @@
 						<li>Computation sent to the data</li>
 						<li>Reference possesses structure</li>
 					</ul>
+					<aside class="notes">
+						First, let's see what kind of concepts we need in order to structure the
+						system, stealing the best ideas from the aforementioned options.
+						Now, I've done a lot of work critiquing and justifying these very concepts, but let's just
+						consider some of the distilled conclusions here
+						Primarily it should be built around distributed objects, a distributed object being a collection
+						of chunks of data that may exist in a distributed matter over several different processes.
+						Practically speaking, these processes should run in entirely separate compute nodes in order to
+						take advantage of the extra memory and compute offered.
+						In your interactive session, you would hold references to these distributed objects, and they
+						would serve as proxies to use for computations over the distributed chunks that they reference.
+						These computations are sent from your session to the process.
+						Computation is sent to the data and can be run in parallel over the compute notes so very little
+						processing or memory are being used by your main session.
+						Finally, the references that you hold should possess some structure, perhaps an array of
+						chunk references that has particular dimensions, and this will define how chunks interact with
+						each
+						other within the distributed object.
+						There are many different concepts here that exist at different layers of abstraction, and I
+						believe the API should reflect this through being layered itself.
+					</aside>
 				</section>
 				<section>
 					<h3>API Layers</h3>
@@ -128,6 +227,29 @@
 							<dd>orcv</dd>
 						</div>
 					</dl>
+					<aside class="notes">
+						So this is what I've managed to implement. The top layer is the model layer, called
+						largescalemodelr. This is where we can simply read some data and use some pre-existing model.
+						This layer is built using the model description layer, where models are defined, and the user
+						may define models at a high-level, interacting with distributed objects and not possessing too
+						much concern for the individual chunks. That's probably the most important layer and defines the
+						whole system so its named largescale r. Below this is the specific layer for cluster
+						interaction,
+						for fine-grained control of individual chunks and elastic nodes, and this provides the API for
+						the layer above. The very base is the actual communications layer, supporting everything above
+						and providing asynchronous p2p communication and job queues that ideally, you shouldn't have to
+						concern yourself with at all in the higher layers.
+					</aside>
+				</section>
+			</section>
+			<section>
+				<section>
+					<h2 class="r-fit-text">Simple API Examples</h2>
+					<aside class="notes">
+						Now let's look at some basic examples of the API in use and how you might think when you go
+						about
+						solving distributed problems.
+					</aside>
 				</section>
 				<section>
 					<h3>API Example: Summation</h3>
@@ -142,6 +264,18 @@ emerge() |>
 sum()
 					</script></code></pre>
 					</div>
+					<aside class="notes">
+						Let's start simple - summation. Consider some vector x that is broken up into j chunks, so you
+						have j subvectors of length i. Due to associativity the sum of the whole is the sum of the
+						sum of the parts and this is exactly how we might describe it within the API. First, we have
+						some distributed vector object x, and using the "d for distribute" function provided by the
+						framework, we can send the "sum" function to each of the individual chunks, and it will return a
+						distributed object, where each chunk is the sum of the corresponding chunk given as input.
+						Next, we pull all of those chunks locally into regular R objects and combine them as a standard
+						numeric vector of sums, using the "emerge" function. And finally, we sum that vector of
+						sums. This is nothing new. It's a very simple application of map-reduce.
+						This function itself could effectively serve as the sum method for distributed objects.
+					</aside>
 				</section>
 				<section>
 					<h3>API Example: Mean</h3>
@@ -151,12 +285,19 @@ sum()
 						\end{equation*} \]
 					</div>
 					<div class="fragment fade-up">
-						<pre class="r"><code data-line-numbers="1|2|3"><script type="text/template">dsum(x) / { 
+						<pre class="r"><code data-line-numbers="1|2|3"><script type="text/template">sum(x) / { 
 	d(length)(x) |> 
-	dsum()
+	sum()
 }
 						</script></code></pre>
 					</div>
+					<aside class="notes">
+						Let's consider something slightly more complex - the arithmetic mean. Here we still have that
+						distributed sum, but we're also dividing by the total length of The distributed object.
+						Assuming a sum method for distributed objects as described just before, and math methods defined
+						in a similar fashion, the denominator is defined using the same "d" function that sends a
+						"length" computation to all of the chunks. And just like that we've defined a distributed mean.
+					</aside>
 				</section>
 				<section>
 					<h3>API Example: Cumulative Sum</h3>
@@ -172,12 +313,30 @@ sum()
 emerge()
 					</script></code></pre>
 					</div>
+					<aside class="notes">
+						Finally, we have a cumulative sum. We have to think of chunks as being in series, which is
+						determined by the structure of the distributed object reference. The main difference between a
+						non-distributed and a distributed version of cumulative sum is that for each chunk in the
+						series, computation requires the cumulative sum of the previous chunk as a starting value. This
+						can be expressed in a functional manner using the "reduce" operator, also known as a "fold", and
+						the largescaler framework provides a distributed form of such a function, where the results of
+						one chunk are sent as the initial value to the reduce function as applied to the next chunk and
+						so on in series. What's returned is a distributed object that by default just holds the final
+						accumulation, consisting of one single chunk. So there you have just a handful of some of the
+						core operators provided by large scale r.
+					</aside>
 				</section>
 			</section>
 			</section>
 			<section>
 				<section>
 					<h2 class="r-fit-text">A More Complex Example</h2>
+					<aside class="notes">
+						Let's consider a more complex example making use of this API. We'll now consider my main problem
+						of defining a novel distributed statistical algorithm. Rather than overload you with something
+						completely new, let's consider something that is familiar, but holds a fairly generic form that
+						novel analyses often share. Let's consider distributed LASSO regression.
+					</aside>
 				</section>
 				<section>
 					<h3>Data</h3>
@@ -194,6 +353,13 @@ emerge()
 					\end{bmatrix}\\
 					A_i \in \mathbb{R}^{m_i\times n},&amp; \quad b_i \in \mathbb{R}^{m_i}
 					\end{aligned} \]
+					<aside class="notes">
+						Our starting data includes a column block matrix of explanatory variables, A, consisting of
+						capital N submatrices. This is equivalent to a distributed object consisting of N chunks. Here,
+						each chunk is of the standard form where rows are individual observations and columns are
+						variables. We also have a block matrix "b" of the same number of chunks, with each chunk being
+						the column vector of response variables to the corresponding A chunks.
+					</aside>
 				</section>
 				<section>
 					<h3>Intention</h3>
@@ -202,6 +368,9 @@ emerge()
 					g(z) &amp;= \lambda \left| z \right|_1 \\
 					\text{minimise} \quad f(x) + g(z) &amp;\quad \text{subject to} \quad x = z
 					\end{aligned} \]
+					<aside class="notes">
+						Don't worry about the maths here - I'm just formally stating that we are fitting a LASSO model.
+					</aside>
 				</section>
 				<section>
 					<h3>Iterative loop</h3>
@@ -210,32 +379,73 @@ emerge()
 					z^{k+1} &amp;:= S_\frac{\lambda}{\rho N} (\overline{x}^{k+1} + \overline{u}^k) \\
 					u_i^{k+1} &amp;:= u_i^k + x_i^{k+1} - z^{k+1}
 					\end{aligned} \]
+					<aside class="notes">
+						And we can do this, using an ADMM loop. Again, don't let the maths overwhelm you, the point is
+						it's complex, it's iterative, and there are interactions between sets of chunks getting reduced
+						and emerged.
+					</aside>
 				</section>
 			</section>
 			<section>
 				<section>
 					<h2 class="r-fit-text">A More Complex API</h2>
+					<aside class="notes">
+						Let's see how this may be implemented using the API. Something I want to show is how simple it
+						is to go from a standard model definition to a distributed one, so I'll present it as a diff.
+					</aside>
 				</section>
 				<section>
 					<h3>Data</h3>
 					<div id="seq-par-diff1"></div>
+					<aside class="notes">
+						On the left of the diff we have how the LASSO as described might be encoded in the absence of
+						the API, assuming that the data fit into memory, and on the right, we make use of large scale R
+						with no such constraining assumption.
+						Immediately we can see that our distributed data may come from multiple files and multiple
+						hosts holding the chunks, and this is easily provided for. We must also be careful to
+						differentiate between the reference of the distributed object, and the distributed object
+						itself. We may also explicitly distribute local values to particular locations.
+					</aside>
 				</section>
 				<section>
 					<h3>Iterative Loop</h3>
 					<div id="seq-par-diff2"></div>
+					<aside class="notes">
+						Within the iterative loop, we can see that very little is actually needed to be changed in order
+						to distribute this algorithm. We make use of a function that operates on distributed objects
+						which we define ourselves in the following slide, as well as the emerge to bring the distributed
+						local as we saw before.
+					</aside>
 				</section>
 				<section>
 					<h3>Magic</h3>
 					<div id="seq-par-diff3"></div>
+					<aside class="notes">
+						The magic of the API is that we can use the exact same update function that we would use
+						locally, but take advantage of that special "d" wrapper to allow it to be used on distributed
+						objects.
+					</aside>
 				</section>
 				<section>
 					<h3>The Code in Action</h3>
 					<div id="asciicast" class="player"></div>
+					<aside class="notes">
+						I'm not brave enough to run this code live, especially given the recent DDOS on the university
+						servers, so here is a recording of the code as given above, in action. It runs fast, so let me
+						explain what you will see. There are four panes of a tmux session, each running a node in the
+						system and the top left pane is our console session, which will run the code as we've just
+						defined it. I'm not going to run it on a very large dataset because I just want you to see the
+						overhead that large-scale r introduces, which is not much. Here we go:
+
+						Now we can see a flurry of activity on each of the compute nodes, and our session comfortably
+						iterating along this algorithm that we've just written.
+					</aside>
 				</section>
 			</section>
 			<section>
 				<section>
 					<h2 class="r-fit-text">Close</h2>
+					<aside class="notes"></aside>
 				</section>
 				<section>
 					<h3>Conclusion</h3>
@@ -251,6 +461,16 @@ emerge()
 							</ul>
 						</li>
 					</ul>
+					<aside class="notes">
+						The key takeaway that I want you to have is that with those basic concepts and this API,
+						you can define some very intense distributed statistical models, in a manner that's not too far
+						from the maths or from the local version.
+						There's some limitations to the use of the system, primarily that it's still in
+						development and it's not as mature as some of the other distributed systems out there, so
+						there's no monitoring or resilience for example. Distributed debugging is a bit of a pain -
+						that's why for most of the models I've written, I typically write it locally, and then piece by
+						piece distribute it.
+					</aside>
 				</section>
 				<section>
 					<div id="graph2"></div>
@@ -258,6 +478,12 @@ emerge()
 						<li><a href="https://jason.cair.nz">https://jason.cair.nz</a></li>
 						<li><a href="https://github.com/jcai849">https://github.com/jcai849</a></li>
 					</ul>
+					<aside class="notes">
+						I want this project to grow larger than myself, so I'd love for you to use it, break it,
+						contribute bug reports, code, documentation, whatever, to the project. It's all open and I would
+						love some feedback. Here are my contact details and my github, where the project currently
+						resides. Thank you for listening.
+					</aside>
 				</section>
 				<section>
 					<div id="graph3"></div>
