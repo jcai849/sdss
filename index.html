@@ -428,7 +428,7 @@ emerge()
 				</section>
 				<section>
 					<h3>The Code in Action</h3>
-					<div id="asciicast" class="player"></div>
+					<div id="lsmr" class="player"></div>
 					<aside class="notes">
 						I'm not brave enough to run this code live, especially given the recent DDOS on the university
 						servers, so here is a recording of the code as given above, in action. It runs fast, so let me
@@ -438,7 +438,18 @@ emerge()
 						overhead that large-scale r introduces, which is not much. Here we go:
 
 						Now we can see a flurry of activity on each of the compute nodes, and our session comfortably
-						iterating along this algorithm that we've just written.
+						iterating along this algorithm that we've just written. It pauses on iteration 13 because it's
+						automatically garbage collecting the many distributed object references that have been created -
+						it cleans up after itself.
+					</aside>
+				</section>
+				<section>
+					<h3>More Code in Action</h3>
+					<div id="lsr" class="player"></div>
+					<aside class="notes">
+						Beyond models, we can perform all of the standard EDA using largescaler.
+						For example, subsetting... tabulation... dplyr, including group-by... - think a bit on the
+						complexities involved with tabulation and the data shuffling required for true group-by
 					</aside>
 				</section>
 			</section>
@@ -552,7 +563,8 @@ emerge()
 			var headers = document.getElementsByClassName('d2h-file-header');
 			while (headers[0]) headers[0].parentNode.removeChild(headers[0]);
 
-			AsciinemaPlayer.create('lasso.cast', document.getElementById('asciicast'));
+			AsciinemaPlayer.create('lsmr.cast', document.getElementById('lsmr'));
+			AsciinemaPlayer.create('lsr.cast', document.getElementById('lsr'));
 
 			Reveal.initialize({
 				hash: true,
